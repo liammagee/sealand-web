@@ -1,0 +1,90 @@
+extends layout
+
+
+block content
+  .wrapper.header_wrapper
+    header
+      a.logo(href='http://www.techo.org')
+        img(src='/images/logo_techo.png')
+  .wrapper.body_wrapper
+    #nav
+      #div_30_1
+        div Acceso al sistema de eliminación de excretas por red cloacal:
+        div
+          select#p_30_1(name='30_1')
+            option(value='0') Todos
+            option(value='1') En primer lugar
+            option(value='2') En segundo lugar
+            option(value='3') En tercer lugar
+            option(value='9') No sabe / No responde
+      #div_30_2
+        div Desague a cámara séptica y pozo ciego:
+        div
+          select#p_30_2(name='30_2')
+            option(value='0') Todos
+            option(value='1') En primer lugar
+            option(value='2') En segundo lugar
+            option(value='3') En tercer lugar
+            option(value='9') No sabe / No responde
+      #div_30_3
+        div Desague sólo a pozo negro/ ciego u hoyo, excavación a tierra:
+        div
+          select#p_30_3(name='30_3')
+            option(value='0') Todos
+            option(value='1') En primer lugar
+            option(value='2') En segundo lugar
+            option(value='3') En tercer lugar
+            option(value='9') No sabe / No responde
+
+      #div_31_1
+        div Acceso al sistema de agua potable a través de agua corriente (red pública):
+        div
+          select#p_31_1(name='31_1')
+            option(value='0') Todos
+            option(value='1') En primer lugar
+            option(value='2') En segundo lugar
+            option(value='3') En tercer lugar
+            option(value='9') No sabe / No responde
+      #div_31_2
+        div Acceso al agua a través de perforación/pozo:
+        div
+          select#p_31_2(name='31_2')
+            option(value='0') Todos
+            option(value='1') En primer lugar
+            option(value='2') En segundo lugar
+            option(value='3') En tercer lugar
+            option(value='9') No sabe / No responde
+      #div_31_3
+        div Acceso al agua través de camión cisterna:
+        div
+          select#p_31_3(name='31_3')
+            option(value='0') Todos
+            option(value='1') En primer lugar
+            option(value='2') En segundo lugar
+            option(value='3') En tercer lugar
+            option(value='9') No sabe / No responde
+
+      div
+        div
+          input#level(type='radio',name='level',value='2',checked='checked')
+          span Localidad
+        div
+          input#level(type='radio',name='level',value='1')
+          span Partido/Municipio/Departamento
+        div
+          input#level(type='radio',name='level',value='0')
+          span Provincia
+      div
+        input#showMarkers(type='checkbox',name='showMarkers',checked='checked')
+        span Show Markers
+      div
+        input#showHeatmap(type='checkbox',name='showHeatmap',checked='checked')
+        span Show Heat map
+      div
+        input#showKML(type='checkbox',name='showKML')
+        span Show KML
+      div
+        input#query(type='submit',name='query', value='Show Results')
+    #map
+      section.body
+        #map_canvas
