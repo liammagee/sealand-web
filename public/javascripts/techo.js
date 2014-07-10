@@ -1,12 +1,13 @@
 
 var map, ctaLayer, encodings, markers = [], weightedPoints = [], heatmap;
+var rows, stateFrequencies, stateAmounts;
 
 // Load the Google map
 initializeMap = function() {
     var mapOptions = {
-        zoom: 9,
+        zoom: 4,
 //        center: new google.maps.LatLng(-34.5976, -58.383),
-        center: new google.maps.LatLng(-34.683, -58.585),
+        center: new google.maps.LatLng(-28.307475, 133.302272),
         mapTypeId: google.maps.MapTypeId.SATELLITE
     };
     map = new google.maps.Map(document.getElementById('map_canvas'), mapOptions);
@@ -30,11 +31,13 @@ hideHeatmap = function() {
 }
 showHeatmap = function() {
     var pointArray = new google.maps.MVCArray(weightedPoints);
+    console.log(pointArray);
+
     heatmap = new google.maps.visualization.HeatmapLayer({
         data: pointArray
         , dissipating: false
         , opacity: 0.5
-        , radius: 1
+        , radius: 5
     });
     heatmap.setMap(map);
 }
@@ -80,36 +83,27 @@ hookUpListeners = function() {
 
     $('#query').click(function() {
         clearOverlays();
-        var records = RecordsManager.records;
 
-        RecordsManager.selectRecords = filterRecords(RecordsManager.records);
-
-        var level = parseInt($('#level:checked').val());
-        var analysedRecords = RecordsManager.analyseRecords(level);
-        for (var key in analysedRecords) {
-            if (analysedRecords.hasOwnProperty(key) && encodings.hasOwnProperty(key)) {
-                var results = encodings[key].results;
-                var weighting = analysedRecords[key];
-                if (results && results.length > 0) {
-                    var lat = results[0].geometry.location.lat,
-                        lng = results[0].geometry.location.lng;
-
-                    // Create Google marker here
-                    var myLatlng = new google.maps.LatLng(lat,lng);
-                    var marker = new google.maps.Marker({
-                        position: myLatlng,
-                        map: map,
-                        title: key + ': ' + weighting + ' records found.'
-                    });
-                    markers.push(marker);
-                    var weightedLocation = {
-                        location: myLatlng,
-                        weight: weighting //Math.pow(2,weighting)
-                    };
-                    weightedPoints.push(weightedLocation)
-                }
+        _.each(stateFrequencies, function(value, state) {
+            var coords = ausStateGPS(state);
+            if (coords != null) {
+                var myLatlng = new google.maps.LatLng(coords["lat"], coords["lng"]);
+                var title = state + ': ' + value + ' records found.';
+                console.log(title); 
+                var marker = new google.maps.Marker({
+                    position: myLatlng,
+                    map: map,
+                    title: state + ': ' + value + ' records found.'
+                });
+                markers.push(marker);
+                var weightedLocation = {
+                    location: myLatlng,
+                    weight: value //Math.pow(2,weighting)
+                };
+                weightedPoints.push(weightedLocation)
             }
-        }
+        });
+
         if ($('#showMarkers').is(':checked'))
             showOverlays()
         else
@@ -122,53 +116,80 @@ hookUpListeners = function() {
     })
 }
 
-filterRecords = function(records) {
-    var p_30_1 = $('#p_30_1').val()
-        , p_30_2 = $('#p_30_2').val()
-        , p_30_3 = $('#p_30_3').val()
-        , p_31_1 = $('#p_31_1').val()
-        , p_31_2 = $('#p_31_2').val()
-        , p_31_3 = $('#p_31_3').val();
 
-    if (p_30_1 > 0)
-        records = _.filter(records, function(row) { return (row.p_30_1 == p_30_1) });
-    if (p_30_2 > 0)
-        records = _.filter(records, function(row) { return (row.p_30_2 == p_30_2) });
-    if (p_30_3 > 0)
-        records = _.filter(records, function(row) { return (row.p_30_3 == p_30_3) });
-    if (p_31_1 > 0)
-        records = _.filter(records, function(row) { return (row.p_31_1 == p_31_1) });
-    if (p_31_2 > 0)
-        records = _.filter(records, function(row) { return (row.p_31_2 == p_31_2) });
-    if (p_31_3 > 0)
-        records = _.filter(records, function(row) { return (row.p_31_3 == p_31_3) });
-
-    return records;
+/**
+ * Taken from http://www.gps-coordinates.net/
+ */
+ausStateGPS = function(state) {
+    latLng = null;
+    if (state == "Australian Capital Territory") {
+        latLng = { "lat": -35.473468, "lng": 149.012368 };
+    }
+    else if (state == "New South Wales") {
+        latLng = { "lat": -31.2532183, "lng": 146.92109900000003 };
+    }
+    else if (state == "Northern Territory") {
+        latLng = { "lat": -19.4914108, "lng": 132.55096030000004 };
+    }
+    else if (state == "Queensland") {
+        latLng = { "lat": -20.9175738, "lng": 142.70279559999994 };
+    }
+    else if (state == "South Australia") {
+        latLng = { "lat": -30.0002315, "lng": 136.2091547 };
+    }
+    else if (state == "Tasmania") {
+        latLng = { "lat": -41.3650419, "lng": 146.6284905 };
+    }
+    else if (state == "Victoria") {
+        latLng = { "lat": -37.4713077, "lng": 144.7851531 };
+    }
+    else if (state == "Western Australia") {
+        latLng = { "lat": -27.6728168, "lng": 121.62830980000001 };
+    }
+    return latLng;
 }
 
-loadEncodings = function() {
-    $.getJSON('/data/encodings.json', function(data) {
-        encodings = data;
+parseCSV = function() {
+    $.get('/data/sealand-simple.csv', function(csv) {
+        var results = $.parse(csv);
+        rows = results.results.rows;
+        stateFrequencies = {};
+        stateAmounts = {};
+        _.each(rows, function(row) {
+            var state1 = row['State 1'];
+            var state2 = row['State 2-?'];
+            var insuredCost = row['Insured Cost'];
+            if (stateFrequencies[state1]) {
+                stateFrequencies[state1] += 1;
+                stateAmounts[state1] += insuredCost;
+            }
+            else {
+                stateFrequencies[state1] = 1;   
+                stateAmounts[state1] = insuredCost;
+            }
+            if (stateFrequencies[state2]) {
+                stateFrequencies[state2] += 1;
+                stateAmounts[state2] += insuredCost;
+            }
+            else {
+                stateFrequencies[state2] = 1;   
+                stateAmounts[state2] = insuredCost;
+            }
+        });
+
+        console.log(stateFrequencies);
     });
 }
-
-loadRecords = function() {
-    $.getJSON('/data/catastro.json', function(data) {
-        RecordsManager.initialiseRecords(data);
-
-        var level = parseInt($('#level:checked').val());
-        var records = RecordsManager.analyseRecords(level);
-    });
-}
-
-
 
 $(document).ready(function() {
     initializeMap();
 
     hookUpListeners();
 
+    parseCSV();
+    /*
     loadEncodings();
 
     loadRecords();
+    */
 });
