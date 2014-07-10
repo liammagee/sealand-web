@@ -179,7 +179,9 @@ parseCSV = function() {
         _.each(rows, function(row) {
             var state1 = row['State 1'];
             var state2 = row['State 2-?'];
-            var insuredCost = row['Insured Cost'];
+            var insuredCost = parseInt(row['Insured Cost']);
+            if (isNaN(insuredCost))
+                insuredCost = 0;
             if (stateFrequencies[state1]) {
                 stateFrequencies[state1] += 1;
                 stateAmounts[state1] += insuredCost;
