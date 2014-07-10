@@ -14,6 +14,15 @@ initializeMap = function() {
 
 }
 
+
+clearOverlays = function() {
+    hideOverlays()
+    markers = [];
+
+    hideHeatmap()
+    weightedPoints = [];
+}
+
 hideOverlays = function() {
     markers.forEach(function(marker) {
         marker.setMap(null);
@@ -31,8 +40,7 @@ hideHeatmap = function() {
 }
 showHeatmap = function() {
     var pointArray = new google.maps.MVCArray(weightedPoints);
-    console.log(pointArray);
-
+    
     heatmap = new google.maps.visualization.HeatmapLayer({
         data: pointArray
         , dissipating: false
@@ -43,26 +51,7 @@ showHeatmap = function() {
 }
 
 
-clearOverlays = function() {
-    hideOverlays()
-    markers = [];
-
-    hideHeatmap()
-    weightedPoints = [];
-}
-
-
 hookUpListeners = function() {
-    $('#showKML').click(function() {
-        if ($(this).is(':checked')) {
-            ctaLayer = new google.maps.KmlLayer('http://dl.dropbox.com/u/4013043/doc.kml');
-            ctaLayer.setMap(map);
-        }
-        else {
-            ctaLayer.setMap(null);
-        }
-    })
-
     $('#showMarkers').click(function() {
         if ($(this).is(':checked')) {
             showOverlays()
@@ -84,21 +73,53 @@ hookUpListeners = function() {
     $('#query').click(function() {
         clearOverlays();
 
-        _.each(stateFrequencies, function(value, state) {
+
+        // Determine the right set of results to show
+        var showResultsBy = parseInt($('#showResults option:selected').val());
+        var values = {};
+        switch (showResultsBy) {
+            case 0:
+                values = stateFrequencies;
+                break;
+            case 1:
+                values = stateAmounts;
+                break;
+        }
+
+        // Determine kind of calculation to apply to each value
+        var calculateResultsBy = parseInt($('#calculateResults option:selected').val());
+
+        // Add weighted points for the set of values
+        _.each(values, function(value, state) {
             var coords = ausStateGPS(state);
             if (coords != null) {
                 var myLatlng = new google.maps.LatLng(coords["lat"], coords["lng"]);
                 var title = state + ': ' + value + ' records found.';
-                console.log(title); 
                 var marker = new google.maps.Marker({
                     position: myLatlng,
                     map: map,
                     title: state + ': ' + value + ' records found.'
                 });
                 markers.push(marker);
+
+                var weightedValue = value;
+                switch (calculateResultsBy) {
+                    // As is: just N
+                    case 0:
+                        weightedValue = value;
+                        break;
+                    // 2 exp N
+                    case 1:
+                        weightedValue = Math.pow(2, value);
+                        break;
+                    // log(N)
+                    case 2:
+                        weightedValue = Math.log(value);
+                        break;
+                }
                 var weightedLocation = {
                     location: myLatlng,
-                    weight: value //Math.pow(2,weighting)
+                    weight: weightedValue //Math.pow(2,weighting)
                 };
                 weightedPoints.push(weightedLocation)
             }
@@ -176,8 +197,6 @@ parseCSV = function() {
                 stateAmounts[state2] = insuredCost;
             }
         });
-
-        console.log(stateFrequencies);
     });
 }
 
@@ -187,9 +206,4 @@ $(document).ready(function() {
     hookUpListeners();
 
     parseCSV();
-    /*
-    loadEncodings();
-
-    loadRecords();
-    */
 });
